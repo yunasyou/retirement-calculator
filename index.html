@@ -268,7 +268,7 @@
     <div class="card">
       <div class="card-label">備用金</div>
       <div class="card-value yellow" id="emergencyFund">–</div>
-      <div class="card-sub">Q38 + O38（現金台幣+美幣+日幣）</div>
+      <div class="card-sub">Q38 + O38 + K38（美幣+日幣+房屋）</div>
     </div>
   </div>
 
@@ -430,8 +430,8 @@ const DEFAULT_DATA = {
   annualExpense: 600000,    // B288
   annualSaving: 1090000,    // B290
   mortgage: 372000,         // I13*12
-  investAsset: 4775160.87,  // 投資型資産 (R38 - 備用金)
-  emergency: 630616.61,     // 備用金
+  investAsset: 4726320.87,  // 投資型資産 = L38+M38+N38
+  emergency: 7730199,       // 備用金 = Q38+O38+K38
 };
 
 let data = { ...DEFAULT_DATA };
@@ -670,19 +670,20 @@ async function syncFromSheets() {
     const vals = json.valueRanges.map(vr => parseFloat((vr.values?.[0]?.[0] || '0').toString().replace(/,/g, '')) || 0);
 
     const [K38, L38, M38, N38, O38, P38, Q38, R38, B288, B290, I13] = vals;
-    const emergency = Q38 + O38; // 備用金 = cash assets (not house)
+    const emergency   = Q38 + O38 + K38;   // 備用金 = Q38+O38+K38
+    const investAsset = L38 + M38 + N38;   // 投資型資産 = L38+M38+N38
 
     data = {
       K38, L38, M38, N38, O38, P38, Q38, R38,
       annualExpense: B288,
       annualSaving: B290,
       mortgage: I13 * 12,
-      investAsset: R38 - emergency,
+      investAsset,
       emergency,
     };
 
     // Update param inputs
-    document.getElementById('p_investAsset').value = (R38 - emergency).toFixed(2);
+    document.getElementById('p_investAsset').value = investAsset.toFixed(2);
     document.getElementById('p_emergency').value   = emergency.toFixed(2);
     document.getElementById('p_annualExpense').value = B288;
     document.getElementById('p_mortgage').value    = (I13 * 12).toFixed(0);
