@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>財務自由計算機</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3450;
+    --accent: #6366f1;
+    --accent2: #22d3ee;
+    --green: #10b981;
+    --red: #f43f5e;
+    --yellow: #f59e0b;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* Header */
+  .header { margin-bottom: 36px; }
+  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  .header p { color: var(--text2); margin-top: 6px; font-size: 14px; }
+  .header-row { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .sync-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text2); font-size: 13px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sync-btn:hover { border-color: var(--accent); color: var(--text); }
+  .sync-btn svg { width: 14px; height: 14px; }
+
+  /* Retirement badge */
+  .fire-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, #6366f120, #22d3ee20);
+    border: 1px solid #6366f140;
+    padding: 10px 20px; border-radius: 100px;
+    font-size: 15px; font-weight: 600; margin-bottom: 32px;
+  }
+  .fire-badge .year { color: var(--accent2); font-size: 20px; }
+  .fire-badge .age-tag {
+    background: var(--accent); color: white;
+    padding: 2px 10px; border-radius: 100px; font-size: 12px;
+  }
+
+  /* Grid layouts */
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 700px) { .grid-3, .grid-2 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .card-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .card-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+  .card-value.green { color: var(--green); }
+  .card-value.accent { color: var(--accent); }
+  .card-value.accent2 { color: var(--accent2); }
+  .card-value.yellow { color: var(--yellow); }
+
+  /* Asset breakdown */
+  .asset-section { margin-bottom: 20px; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+  .asset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 600px) { .asset-grid { grid-template-columns: repeat(2, 1fr); } }
+  .asset-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+    position: relative; overflow: hidden;
+  }
+  .asset-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--asset-color, var(--accent));
+  }
+  .asset-card .lbl { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .asset-card .val { font-size: 16px; font-weight: 700; }
+  .asset-card .pct { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* Parameters panel */
+  .params-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+    margin-bottom: 20px;
+  }
+  .params-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    margin-top: 16px;
+  }
+  @media (max-width: 600px) { .params-grid { grid-template-columns: repeat(2, 1fr); } }
+  .param-item label { font-size: 11px; color: var(--text3); display: block; margin-bottom: 6px; }
+  .param-item input {
+    width: 100%; padding: 8px 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .param-item input:focus { border-color: var(--accent); }
+  .recalc-btn {
+    margin-top: 16px; padding: 10px 24px;
+    background: var(--accent); color: white; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+  .recalc-btn:hover { opacity: 0.85; }
+
+  /* Chart */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+    margin-bottom: 20px;
+  }
+  .chart-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+  .chart-wrap { position: relative; height: 300px; }
+  .legend { display: flex; gap: 20px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* Projection table */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden; margin-bottom: 20px;
+  }
+  .table-header { padding: 20px 24px 16px; }
+  .table-header h3 { font-size: 15px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: var(--surface2);
+    padding: 10px 14px; text-align: right;
+    font-size: 11px; color: var(--text3);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
+    white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; }
+  tbody tr { border-top: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr.fire-row { background: #6366f110; }
+  tbody tr.fire-row td { color: var(--text); }
+  tbody td {
+    padding: 10px 14px; font-size: 13px; text-align: right;
+    color: var(--text2);
+  }
+  tbody td:first-child { text-align: left; }
+  .positive { color: var(--green) !important; font-weight: 600; }
+  .negative { color: var(--red) !important; }
+  .fire-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #6366f130; color: var(--accent);
+    padding: 2px 8px; border-radius: 100px; font-size: 10px; font-weight: 700;
+    margin-left: 6px;
+  }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* Sync modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: #00000090; z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; width: 480px; max-width: 95vw;
+  }
+  .modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 16px; }
+  .modal input {
+    width: 100%; padding: 10px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 14px;
+    outline: none; margin-bottom: 12px; transition: border-color 0.2s;
+  }
+  .modal input:focus { border-color: var(--accent); }
+  .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+  .btn-cancel {
+    padding: 9px 18px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text2); font-size: 13px; cursor: pointer;
+  }
+  .btn-sync {
+    padding: 9px 18px; background: var(--accent);
+    border: none; border-radius: 8px;
+    color: white; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  code {
+    background: var(--surface2); padding: 2px 6px; border-radius: 4px;
+    font-size: 12px; color: var(--accent2);
+  }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 4px;
+  }
+  .status-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.cached { background: var(--yellow); }
+  .last-sync { font-size: 11px; color: var(--text3); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <h1>財務自由計算機 🔥</h1>
+        <p class="last-sync">
+          <span class="status-dot cached" id="statusDot"></span>
+          <span id="lastSyncLabel">資料來源：Google Sheets（上次同步 <span id="syncTime">–</span>）</span>
+        </p>
+      </div>
+      <button class="sync-btn" onclick="openSyncModal()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v4h-4"/>
+        </svg>
+        從 Google Sheets 同步
+      </button>
+    </div>
+  </div>
+
+  <!-- Fire target badge -->
+  <div class="fire-badge" id="fireBadge">
+    🔥 預計退休年份：<span class="year" id="fireYearLabel">–</span>
+    <span class="age-tag" id="fireAgeLabel">–</span>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="grid-3" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-label">股票現金資産</div>
+      <div class="card-value accent" id="totalStockCash">–</div>
+      <div class="card-sub">L38+M38+N38+O38+P38+Q38</div>
+    </div>
+    <div class="card">
+      <div class="card-label">股票現金房屋資産</div>
+      <div class="card-value accent2" id="totalWithHouse">–</div>
+      <div class="card-sub">R38 + K38</div>
+    </div>
+    <div class="card">
+      <div class="card-label">備用金</div>
+      <div class="card-value yellow" id="emergencyFund">–</div>
+      <div class="card-sub">Q38 + O38（現金台幣+美幣+日幣）</div>
+    </div>
+  </div>
+
+  <!-- Asset breakdown -->
+  <div class="asset-section">
+    <div class="section-title">資産分配</div>
+    <div class="asset-grid">
+      <div class="asset-card" style="--asset-color: #6366f1">
+        <div class="lbl">美股資産 (L38)</div>
+        <div class="val" id="assetUS">–</div>
+        <div class="pct" id="assetUSPct"></div>
+      </div>
+      <div class="asset-card" style="--asset-color: #22d3ee">
+        <div class="lbl">台股資産 (M38+N38)</div>
+        <div class="val" id="assetTW">–</div>
+        <div class="pct" id="assetTWPct"></div>
+      </div>
+      <div class="asset-card" style="--asset-color: #10b981">
+        <div class="lbl">台幣現金 (P38)</div>
+        <div class="val" id="assetTWD">–</div>
+        <div class="pct" id="assetTWDPct"></div>
+      </div>
+      <div class="asset-card" style="--asset-color: #f59e0b">
+        <div class="lbl">美幣現金 (Q38)</div>
+        <div class="val" id="assetUSD">–</div>
+        <div class="pct" id="assetUSDPct"></div>
+      </div>
+      <div class="asset-card" style="--asset-color: #f43f5e">
+        <div class="lbl">日幣現金 (O38)</div>
+        <div class="val" id="assetJPY">–</div>
+        <div class="pct" id="assetJPYPct"></div>
+      </div>
+      <div class="asset-card" style="--asset-color: #a78bfa">
+        <div class="lbl">房屋資産 (K38)</div>
+        <div class="val" id="assetHouse">–</div>
+        <div class="pct" id="assetHousePct"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Parameters -->
+  <div class="params-card">
+    <div class="section-title">計算參數</div>
+    <div class="params-grid">
+      <div class="param-item">
+        <label>投資型資産（股票資産初始值）</label>
+        <input type="number" id="p_investAsset" value="4775160.87">
+      </div>
+      <div class="param-item">
+        <label>備用金（不投資的現金）</label>
+        <input type="number" id="p_emergency" value="630616.61">
+      </div>
+      <div class="param-item">
+        <label>一年生活支出（B288）</label>
+        <input type="number" id="p_annualExpense" value="600000">
+      </div>
+      <div class="param-item">
+        <label>每年房貸（I13×12）</label>
+        <input type="number" id="p_mortgage" value="372000">
+      </div>
+      <div class="param-item">
+        <label>每年儲蓄（B290）</label>
+        <input type="number" id="p_annualSaving" value="1090000">
+      </div>
+      <div class="param-item">
+        <label>每年報酬率（%）</label>
+        <input type="number" id="p_return" value="8" step="0.1">
+      </div>
+      <div class="param-item">
+        <label>安全提領率（%）</label>
+        <input type="number" id="p_swr" value="4" step="0.1">
+      </div>
+      <div class="param-item">
+        <label>每年通膨率（%）</label>
+        <input type="number" id="p_inflation" value="2" step="0.1">
+      </div>
+    </div>
+    <button class="recalc-btn" onclick="calculate()">重新計算</button>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-card">
+    <div class="chart-title">資産成長 vs. 安全提領</div>
+    <div class="chart-wrap">
+      <canvas id="projChart"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div>總資産</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>安全提領</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f43f5e"></div>最小支出+房貸</div>
+    </div>
+  </div>
+
+  <!-- Projection table -->
+  <div class="table-card">
+    <div class="table-header">
+      <h3>年度退休計劃試算</h3>
+    </div>
+    <div style="overflow-x:auto">
+      <table id="projTable">
+        <thead>
+          <tr>
+            <th>年份</th>
+            <th>年齡</th>
+            <th>最小支出</th>
+            <th>最小支出+房貸</th>
+            <th>總資産</th>
+            <th>安全提領</th>
+            <th>安全提領－最小支出</th>
+            <th>每月可用</th>
+          </tr>
+        </thead>
+        <tbody id="projBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Sync Modal -->
+<div class="modal-overlay" id="syncModal">
+  <div class="modal">
+    <h3>從 Google Sheets 同步資料</h3>
+    <p>
+      需要 Google Sheets API Key 才能讀取試算表資料。<br>
+      試算表 ID：<code>1O1pChfwn31ndwJi4xxqdgqdmdGMD7Vl0pT_SnNsaDq8</code>
+    </p>
+    <p>
+      取得 API Key：Google Cloud Console → 啟用 Sheets API → 憑證 → 建立 API Key
+    </p>
+    <input type="text" id="apiKeyInput" placeholder="輸入 Google Sheets API Key..." autocomplete="off">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeSyncModal()">取消</button>
+      <button class="btn-sync" onclick="syncFromSheets()">同步資料</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SPREADSHEET_ID = '1O1pChfwn31ndwJi4xxqdgqdmdGMD7Vl0pT_SnNsaDq8';
+const BIRTH_YEAR = 1983;
+const BIRTH_MONTH = 11; // November
+const START_YEAR = 2026;
+
+// Default data from spreadsheet (synced 2026-05-13)
+const DEFAULT_DATA = {
+  // Assets for display (K38-R38 from 資産分配)
+  K38: 12781884.19, // 房屋
+  L38: 3990530,     // 美股 (estimated from portfolio)
+  M38: 3812033.37,  // 台股大盤
+  N38: 914287.50,   // 台積電
+  O38: 37357.87,    // 日幣現金 (NTD equivalent)
+  P38: 273258.74,   // 台幣現金
+  Q38: 320000,      // 美幣現金 (NTD equivalent)
+  R38: 5415916.97,  // 股票現金合計
+  // Calculation params
+  annualExpense: 600000,    // B288
+  annualSaving: 1090000,    // B290
+  mortgage: 372000,         // I13*12
+  investAsset: 4775160.87,  // 投資型資産 (R38 - 備用金)
+  emergency: 630616.61,     // 備用金
+};
+
+let data = { ...DEFAULT_DATA };
+let projChart = null;
+
+function fmt(n) {
+  if (Math.abs(n) >= 1e6) return (n/1e4).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',') + '萬';
+  return Math.round(n).toLocaleString('zh-TW');
+}
+function fmtFull(n) { return Math.round(n).toLocaleString('zh-TW'); }
+
+function ageAt(year) {
+  return year - BIRTH_YEAR - (BIRTH_MONTH > 6 ? 1 : 0); // approximate
+}
+
+function calculate() {
+  const investAsset = parseFloat(document.getElementById('p_investAsset').value);
+  const emergency   = parseFloat(document.getElementById('p_emergency').value);
+  const annualExp   = parseFloat(document.getElementById('p_annualExpense').value);
+  const mortgage    = parseFloat(document.getElementById('p_mortgage').value);
+  const annualSave  = parseFloat(document.getElementById('p_annualSaving').value);
+  const returnRate  = parseFloat(document.getElementById('p_return').value) / 100 + 1;
+  const swr         = parseFloat(document.getElementById('p_swr').value) / 100;
+  const inflation   = parseFloat(document.getElementById('p_inflation').value) / 100 + 1;
+
+  const rows = [];
+  let asset = (investAsset + annualSave) * returnRate + emergency; // Year 1 end
+  let fireYear = null;
+
+  for (let i = 0; i < 35; i++) {
+    const year = START_YEAR + i;
+    const n = i + 1;
+    const age = ageAt(year);
+    const minExp = annualExp * Math.pow(inflation, i);
+    const minExpMortgage = minExp + mortgage;
+    const safeWithdraw = asset * swr;
+    const diff = safeWithdraw - minExpMortgage;
+    const monthlyAvail = diff / 12;
+
+    rows.push({ year, age, n, minExp, minExpMortgage, asset, safeWithdraw, diff, monthlyAvail });
+
+    if (diff > 0 && !fireYear) fireYear = { year, age };
+
+    // Next year asset
+    asset = (asset + annualSave) * returnRate + emergency;
+  }
+
+  renderBadge(fireYear);
+  renderTable(rows, fireYear);
+  renderChart(rows, fireYear);
+}
+
+function renderBadge(fireYear) {
+  const badge = document.getElementById('fireBadge');
+  if (fireYear) {
+    document.getElementById('fireYearLabel').textContent = fireYear.year;
+    document.getElementById('fireAgeLabel').textContent = fireYear.age + ' 歲';
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderTable(rows, fireYear) {
+  const tbody = document.getElementById('projBody');
+  tbody.innerHTML = rows.map(r => {
+    const isFire = fireYear && r.year === fireYear.year;
+    const diffClass = r.diff > 0 ? 'positive' : 'negative';
+    const fireTagHtml = isFire ? '<span class="fire-tag">🔥 FIRE</span>' : '';
+    return `<tr class="${isFire ? 'fire-row' : ''}">
+      <td><strong>${r.year}</strong>${fireTagHtml}</td>
+      <td>${r.age}</td>
+      <td>${fmtFull(Math.round(r.minExp))}</td>
+      <td>${fmtFull(Math.round(r.minExpMortgage))}</td>
+      <td>${fmtFull(Math.round(r.asset))}</td>
+      <td>${fmtFull(Math.round(r.safeWithdraw))}</td>
+      <td class="${diffClass}">${r.diff > 0 ? '+' : ''}${fmtFull(Math.round(r.diff))}</td>
+      <td class="${diffClass}">${r.diff > 0 ? '+' : ''}${fmtFull(Math.round(r.monthlyAvail))}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderChart(rows, fireYear) {
+  const labels = rows.map(r => `${r.year}\n${r.age}歲`);
+  const assetData = rows.map(r => Math.round(r.asset));
+  const swrData = rows.map(r => Math.round(r.safeWithdraw));
+  const minExpData = rows.map(r => Math.round(r.minExpMortgage));
+
+  if (projChart) projChart.destroy();
+
+  const ctx = document.getElementById('projChart').getContext('2d');
+  projChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '總資産', data: assetData,
+          borderColor: '#6366f1', backgroundColor: '#6366f120',
+          borderWidth: 2, fill: true, tension: 0.3, pointRadius: 3,
+          yAxisID: 'y',
+        },
+        {
+          label: '安全提領', data: swrData,
+          borderColor: '#10b981', backgroundColor: 'transparent',
+          borderWidth: 2, fill: false, tension: 0.3, pointRadius: 3,
+          yAxisID: 'y1',
+        },
+        {
+          label: '最小支出+房貸', data: minExpData,
+          borderColor: '#f43f5e', backgroundColor: 'transparent',
+          borderWidth: 1.5, fill: false, tension: 0.3,
+          borderDash: [6, 3], pointRadius: 2,
+          yAxisID: 'y1',
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1d27', borderColor: '#2e3450', borderWidth: 1,
+          titleColor: '#e2e8f0', bodyColor: '#94a3b8',
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: NT$${ctx.raw.toLocaleString('zh-TW')}`
+          }
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: '#2e345040' },
+          ticks: { color: '#64748b', font: { size: 10 }, maxTicksLimit: 12 },
+        },
+        y: {
+          position: 'left',
+          grid: { color: '#2e345040' },
+          ticks: {
+            color: '#64748b', font: { size: 10 },
+            callback: v => v >= 1e6 ? (v/1e4).toFixed(0) + '萬' : v.toLocaleString()
+          },
+        },
+        y1: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: {
+            color: '#64748b', font: { size: 10 },
+            callback: v => v >= 1e6 ? (v/1e4).toFixed(0) + '萬' : v.toLocaleString()
+          },
+        }
+      },
+      // Annotate FIRE year
+      ...(fireYear ? {
+        plugins: {
+          legend: { display: false },
+          annotation: undefined,
+          tooltip: {
+            backgroundColor: '#1a1d27', borderColor: '#2e3450', borderWidth: 1,
+            titleColor: '#e2e8f0', bodyColor: '#94a3b8',
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: NT$${ctx.raw.toLocaleString('zh-TW')}`
+            }
+          },
+        }
+      } : {})
+    }
+  });
+}
+
+function renderAssets() {
+  const d = data;
+  const twStock = (d.M38 || 0) + (d.N38 || 0);
+  const usStock = d.L38 || 0;
+  const twdCash = d.P38 || 0;
+  const usdCash = d.Q38 || 0;
+  const jpyCash = d.O38 || 0;
+  const house   = d.K38 || 0;
+  const r38     = d.R38 || (usStock + twStock + twdCash + usdCash + jpyCash);
+  const total   = house + r38;
+
+  document.getElementById('totalStockCash').textContent = 'NT$' + fmtFull(Math.round(r38));
+  document.getElementById('totalWithHouse').textContent = 'NT$' + fmtFull(Math.round(total));
+  document.getElementById('emergencyFund').textContent  = 'NT$' + fmtFull(Math.round(d.emergency));
+
+  const pct = v => '佔投資組合 ' + (v/r38*100).toFixed(1) + '%';
+
+  document.getElementById('assetUS').textContent    = 'NT$' + fmtFull(Math.round(usStock));
+  document.getElementById('assetUSPct').textContent  = pct(usStock);
+  document.getElementById('assetTW').textContent    = 'NT$' + fmtFull(Math.round(twStock));
+  document.getElementById('assetTWPct').textContent  = pct(twStock);
+  document.getElementById('assetTWD').textContent   = 'NT$' + fmtFull(Math.round(twdCash));
+  document.getElementById('assetTWDPct').textContent = pct(twdCash);
+  document.getElementById('assetUSD').textContent   = 'NT$' + fmtFull(Math.round(usdCash));
+  document.getElementById('assetUSDPct').textContent = pct(usdCash);
+  document.getElementById('assetJPY').textContent   = 'NT$' + fmtFull(Math.round(jpyCash));
+  document.getElementById('assetJPYPct').textContent = pct(jpyCash);
+  document.getElementById('assetHouse').textContent = 'NT$' + fmtFull(Math.round(house));
+  document.getElementById('assetHousePct').textContent = '(不列入投資試算)';
+}
+
+// Sync modal
+function openSyncModal() {
+  document.getElementById('syncModal').classList.add('open');
+  const saved = localStorage.getItem('gsheets_api_key');
+  if (saved) document.getElementById('apiKeyInput').value = saved;
+}
+function closeSyncModal() {
+  document.getElementById('syncModal').classList.remove('open');
+}
+
+async function syncFromSheets() {
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) { alert('請輸入 API Key'); return; }
+  localStorage.setItem('gsheets_api_key', apiKey);
+
+  const ranges = [
+    '資産分配!K38', '資産分配!L38', '資産分配!M38', '資産分配!N38',
+    '資産分配!O38', '資産分配!P38', '資産分配!Q38', '資産分配!R38',
+    '資産分配!B288', '資産分配!B290',
+    '日本購屋支出!I13',
+  ];
+
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?` +
+    ranges.map(r => `ranges=${encodeURIComponent(r)}`).join('&') +
+    `&key=${apiKey}`;
+
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert('同步失敗：' + (err.error?.message || resp.status));
+      return;
+    }
+    const json = await resp.json();
+    const vals = json.valueRanges.map(vr => parseFloat((vr.values?.[0]?.[0] || '0').toString().replace(/,/g, '')) || 0);
+
+    const [K38, L38, M38, N38, O38, P38, Q38, R38, B288, B290, I13] = vals;
+    const emergency = Q38 + O38; // 備用金 = cash assets (not house)
+
+    data = {
+      K38, L38, M38, N38, O38, P38, Q38, R38,
+      annualExpense: B288,
+      annualSaving: B290,
+      mortgage: I13 * 12,
+      investAsset: R38 - emergency,
+      emergency,
+    };
+
+    // Update param inputs
+    document.getElementById('p_investAsset').value = (R38 - emergency).toFixed(2);
+    document.getElementById('p_emergency').value   = emergency.toFixed(2);
+    document.getElementById('p_annualExpense').value = B288;
+    document.getElementById('p_mortgage').value    = (I13 * 12).toFixed(0);
+    document.getElementById('p_annualSaving').value = B290;
+
+    const now = new Date().toLocaleDateString('zh-TW', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    document.getElementById('syncTime').textContent = now;
+    document.getElementById('statusDot').className = 'status-dot live';
+
+    renderAssets();
+    calculate();
+    closeSyncModal();
+  } catch(e) {
+    alert('同步失敗：' + e.message);
+  }
+}
+
+// Auto-sync on load if API key exists
+async function init() {
+  const savedKey = localStorage.getItem('gsheets_api_key');
+  if (savedKey) {
+    document.getElementById('statusDot').className = 'status-dot cached';
+    document.getElementById('syncTime').textContent = '同步中…';
+    renderAssets();
+    calculate();
+    // Auto-sync in background
+    document.getElementById('apiKeyInput').value = savedKey;
+    await syncFromSheets();
+  } else {
+    renderAssets();
+    calculate();
+    document.getElementById('syncTime').textContent = '2026/05/13（預設值）';
+  }
+}
+init();
+</script>
+</body>
+</html>
