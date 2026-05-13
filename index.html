@@ -268,7 +268,7 @@
     <div class="card">
       <div class="card-label">備用金</div>
       <div class="card-value yellow" id="emergencyFund">–</div>
-      <div class="card-sub">Q38 + O38 + K38（美幣+日幣+房屋）</div>
+      <div class="card-sub">Q38 + O38 + P38（現金台幣+美金+日幣）</div>
     </div>
   </div>
 
@@ -292,7 +292,7 @@
         <div class="pct" id="assetTWDPct"></div>
       </div>
       <div class="asset-card" style="--asset-color: #f59e0b">
-        <div class="lbl">美幣現金 (Q38)</div>
+        <div class="lbl">美金現金 (Q38)</div>
         <div class="val" id="assetUSD">–</div>
         <div class="pct" id="assetUSDPct"></div>
       </div>
@@ -424,14 +424,14 @@ const DEFAULT_DATA = {
   N38: 914287.50,   // 台積電
   O38: 37357.87,    // 日幣現金 (NTD equivalent)
   P38: 273258.74,   // 台幣現金
-  Q38: 320000,      // 美幣現金 (NTD equivalent)
+  Q38: 320000,      // 美金現金 (NTD equivalent)
   R38: 5415916.97,  // 股票現金合計
   // Calculation params
   annualExpense: 600000,    // B288
   annualSaving: 1090000,    // B290
   mortgage: 372000,         // I13*12
   investAsset: 4726320.87,  // 投資型資産 = L38+M38+N38
-  emergency: 7730199,       // 備用金 = Q38+O38+K38
+  emergency: 630616.61,     // 備用金 = Q38+O38+P38
 };
 
 let data = { ...DEFAULT_DATA };
@@ -670,7 +670,7 @@ async function syncFromSheets() {
     const vals = json.valueRanges.map(vr => parseFloat((vr.values?.[0]?.[0] || '0').toString().replace(/,/g, '')) || 0);
 
     const [K38, L38, M38, N38, O38, P38, Q38, R38, B288, B290, I13] = vals;
-    const emergency   = Q38 + O38 + K38;   // 備用金 = Q38+O38+K38
+    const emergency   = Q38 + O38 + P38;   // 備用金 = Q38+O38+P38
     const investAsset = L38 + M38 + N38;   // 投資型資産 = L38+M38+N38
 
     data = {
