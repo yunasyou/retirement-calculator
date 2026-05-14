@@ -494,36 +494,45 @@ function calculate() {
   const swrPct       = parseFloat(document.getElementById('p_swr').value);
   const inflationPct = parseFloat(document.getElementById('p_inflation').value);
 
-  const monthlyRate = Math.pow(1 + annualRetPct / 100, 1 / 12) - 1;
-  const annualRate  = annualRetPct / 100;
-  const swr         = swrPct / 100;
-  const inflAnnual  = 1 + inflationPct / 100;
+  const monthlyRate  = Math.pow(1 + annualRetPct / 100, 1 / 12) - 1;
+  const swr          = swrPct / 100;
+  const inflAnnual   = 1 + inflationPct / 100;
+  // 投入結構：每月定期 (VOO 70k + 006208 10k)，6月加碼 (VOO 130k)
+  const midYearBonus   = 130000;
+  const monthlyDeposit = (annualSave - midYearBonus) / 12; // 80,000/月
 
   const rows = [];
   let fireYear = null;
   let fireDate = null;
   let invested = investAsset;
 
-  for (let y = 0; y < 35; y++) {
-    // 年初一次投入，然後複利整年
-    invested = (invested + annualSave) * (1 + annualRate);
+  for (let m = 1; m <= 35 * 12; m++) {
+    const monthOfYear = ((m - 1) % 12) + 1; // 1–12
+    const deposit = monthlyDeposit + (monthOfYear === 6 ? midYearBonus : 0);
+    invested = (invested + deposit) * (1 + monthlyRate);
     const asset = invested + emergency;
-    const year  = START_YEAR + y;
-    const age   = ageAt(year);
-    const minExp = annualExp * Math.pow(inflAnnual, y);
-    const minExpMortgage = minExp + mortgage;
-    const safeWithdraw = asset * swr;
-    const snapDiff = safeWithdraw - minExpMortgage;
-    rows.push({ year, age, minExp, minExpMortgage, asset, safeWithdraw, diff: snapDiff, monthlyAvail: snapDiff / 12 });
 
-    if (snapDiff > 0 && !fireYear) {
-      fireYear = { year, age };
-      // 用前一年與今年線性內插，找出年內哪個月跨越 0
-      const prevDiff = rows.length >= 2 ? rows[rows.length - 2].diff : -Math.abs(snapDiff);
-      const frac = Math.abs(prevDiff) / (Math.abs(prevDiff) + Math.abs(snapDiff));
-      const fireMonth = Math.round(frac * 12); // 0=年初, 12=年底
-      const d = new Date(year, fireMonth, 1);
+    // 每月檢查是否達到 FIRE
+    const annualMinExp = annualExp * Math.pow(inflAnnual, (m - 1) / 12);
+    const diff = asset * swr - (annualMinExp + mortgage);
+
+    if (!fireDate && diff >= 0) {
+      const d = new Date(START_YEAR, 0, 1);
+      d.setMonth(d.getMonth() + m - 1);
       fireDate = d;
+    }
+
+    // 每12個月記錄年度快照
+    if (m % 12 === 0) {
+      const yearIdx = m / 12 - 1;
+      const year = START_YEAR + yearIdx;
+      const age  = ageAt(year);
+      const minExp = annualExp * Math.pow(inflAnnual, yearIdx);
+      const minExpMortgage = minExp + mortgage;
+      const safeWithdraw = asset * swr;
+      const snapDiff = safeWithdraw - minExpMortgage;
+      rows.push({ year, age, minExp, minExpMortgage, asset, safeWithdraw, diff: snapDiff, monthlyAvail: snapDiff / 12 });
+      if (snapDiff > 0 && !fireYear) fireYear = { year, age };
     }
   }
 
