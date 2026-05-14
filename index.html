@@ -484,23 +484,49 @@ function ageAt(year) {
   return year - BIRTH_YEAR - (BIRTH_MONTH > 6 ? 1 : 0); // approximate
 }
 
+function calcFireDate(investAsset, emergency, annualExp, mortgage, annualSave, annualReturnPct, swrPct, inflationPct) {
+  // Monthly projection to find exact retirement month
+  const monthlyRate = Math.pow(1 + annualReturnPct / 100, 1/12) - 1;
+  const monthlySave = annualSave / 12;
+  const swr         = swrPct / 100;
+  const inflAnnual  = inflationPct / 100 + 1;
+
+  let invested = investAsset;
+  for (let m = 1; m <= 35 * 12; m++) {
+    invested = (invested + monthlySave) * (1 + monthlyRate);
+    const asset = invested + emergency;
+    const monthsElapsed = m - 1; // start of this month
+    const annualMinExp = annualExp * Math.pow(inflAnnual, m / 12);
+    if (asset * swr >= annualMinExp + mortgage) {
+      // Found the exact month
+      const date = new Date(START_YEAR, 0, 1); // Jan 1 2026
+      date.setMonth(date.getMonth() + m);
+      return date;
+    }
+  }
+  return null;
+}
+
 function calculate() {
-  const investAsset = parseFloat(document.getElementById('p_investAsset').value);
-  const emergency   = parseFloat(document.getElementById('p_emergency').value);
-  const annualExp   = parseFloat(document.getElementById('p_annualExpense').value);
-  const mortgage    = parseFloat(document.getElementById('p_mortgage').value);
-  const annualSave  = parseFloat(document.getElementById('p_annualSaving').value);
-  const returnRate  = parseFloat(document.getElementById('p_return').value) / 100 + 1;
-  const swr         = parseFloat(document.getElementById('p_swr').value) / 100;
-  const inflation   = parseFloat(document.getElementById('p_inflation').value) / 100 + 1;
+  const investAsset    = parseFloat(document.getElementById('p_investAsset').value);
+  const emergency      = parseFloat(document.getElementById('p_emergency').value);
+  const annualExp      = parseFloat(document.getElementById('p_annualExpense').value);
+  const mortgage       = parseFloat(document.getElementById('p_mortgage').value);
+  const annualSave     = parseFloat(document.getElementById('p_annualSaving').value);
+  const annualReturnPct = parseFloat(document.getElementById('p_return').value);
+  const swrPct         = parseFloat(document.getElementById('p_swr').value);
+  const inflationPct   = parseFloat(document.getElementById('p_inflation').value);
+
+  const returnRate = annualReturnPct / 100 + 1;
+  const swr        = swrPct / 100;
+  const inflation  = inflationPct / 100 + 1;
 
   const rows = [];
-  let asset = (investAsset + annualSave) * returnRate + emergency; // Year 1 end
+  let asset = (investAsset + annualSave) * returnRate + emergency;
   let fireYear = null;
 
   for (let i = 0; i < 35; i++) {
     const year = START_YEAR + i;
-    const n = i + 1;
     const age = ageAt(year);
     const minExp = annualExp * Math.pow(inflation, i);
     const minExpMortgage = minExp + mortgage;
@@ -508,57 +534,61 @@ function calculate() {
     const diff = safeWithdraw - minExpMortgage;
     const monthlyAvail = diff / 12;
 
-    rows.push({ year, age, n, minExp, minExpMortgage, asset, safeWithdraw, diff, monthlyAvail });
+    rows.push({ year, age, minExp, minExpMortgage, asset, safeWithdraw, diff, monthlyAvail });
 
     if (diff > 0 && !fireYear) fireYear = { year, age };
 
-    // Next year asset
     asset = (asset + annualSave) * returnRate + emergency;
   }
 
-  renderBadge(fireYear);
+  // Precise fire date via monthly compounding
+  const fireDate = calcFireDate(investAsset, emergency, annualExp, mortgage, annualSave, annualReturnPct, swrPct, inflationPct);
+
+  renderBadge(fireYear, fireDate);
   renderTable(rows, fireYear);
   renderChart(rows, fireYear);
 }
 
-function renderBadge(fireYear) {
+function renderBadge(fireYear, fireDate) {
   const section = document.getElementById('fireSection');
-  if (!fireYear) { section.style.display = 'none'; return; }
+  if (!fireYear || !fireDate) { section.style.display = 'none'; return; }
   section.style.display = 'block';
 
-  // Retirement date = Jan 1st of fire year
-  const retireDate = new Date(fireYear.year, 0, 1);
-  const retireDateStr = `${fireYear.year}年01月01日`;
+  // Format precise retirement date
+  const ry = fireDate.getFullYear();
+  const rm = String(fireDate.getMonth() + 1).padStart(2, '0');
+  const rd = String(fireDate.getDate()).padStart(2, '0');
+  const retireDateStr = `${ry}年${rm}月${rd}日`;
 
-  // Age at retirement: years + months since birth
+  // Age at precise retirement date
   const birth = new Date(BIRTH_YEAR, BIRTH_MONTH - 1, 14);
-  let ageYears = retireDate.getFullYear() - birth.getFullYear();
-  let ageMonths = retireDate.getMonth() - birth.getMonth();
-  if (retireDate.getDate() < birth.getDate()) ageMonths--;
+  let ageYears  = ry - birth.getFullYear();
+  let ageMonths = fireDate.getMonth() - birth.getMonth();
+  if (fireDate.getDate() < birth.getDate()) ageMonths--;
   if (ageMonths < 0) { ageYears--; ageMonths += 12; }
   const ageStr = `${ageYears}歲${ageMonths}個月`;
 
   document.getElementById('fireYearLabel').textContent = retireDateStr;
-  document.getElementById('fireAgeLabel').textContent = ageStr;
+  document.getElementById('fireAgeLabel').textContent  = ageStr;
 
-  // Countdown from today
+  // Countdown from today to precise retirement date
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const totalDays = Math.ceil((retireDate - today) / 86400000);
+  fireDate.setHours(0, 0, 0, 0);
+  const totalDays = Math.ceil((fireDate - today) / 86400000);
   document.getElementById('countdownDays').textContent = totalDays.toLocaleString('zh-TW');
 
-  // Break down into years / months / days
+  // Break down: years / months / days
   let cy = today.getFullYear(), cm = today.getMonth(), cd = today.getDate();
-  let ry = retireDate.getFullYear(), rm = retireDate.getMonth(), rd = retireDate.getDate();
-  let diffY = ry - cy, diffM = rm - cm, diffD = rd - cd;
+  let diffY = ry - cy, diffM = (fireDate.getMonth() + 1) - (cm + 1), diffD = fireDate.getDate() - cd;
   if (diffD < 0) {
     diffM--;
-    diffD += new Date(ry, rm, 0).getDate();
+    diffD += new Date(ry, fireDate.getMonth(), 0).getDate();
   }
   if (diffM < 0) { diffY--; diffM += 12; }
-  document.getElementById('countdownYears').textContent = diffY;
-  document.getElementById('countdownMonths').textContent = diffM;
-  document.getElementById('countdownDaysRem').textContent = diffD;
+  document.getElementById('countdownYears').textContent    = diffY;
+  document.getElementById('countdownMonths').textContent   = diffM;
+  document.getElementById('countdownDaysRem').textContent  = diffD;
 }
 
 function renderTable(rows, fireYear) {
