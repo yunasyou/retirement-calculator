@@ -484,24 +484,21 @@ function ageAt(year) {
   return year - BIRTH_YEAR - (BIRTH_MONTH > 6 ? 1 : 0); // approximate
 }
 
-function calcFireDate(investAsset, emergency, annualExp, mortgage, annualSave, annualReturnPct, swrPct, inflationPct) {
-  // Monthly projection to find exact retirement month
-  const monthlyRate = Math.pow(1 + annualReturnPct / 100, 1/12) - 1;
-  const monthlySave = annualSave / 12;
-  const swr         = swrPct / 100;
-  const inflAnnual  = inflationPct / 100 + 1;
+function calcFireDate(rows) {
+  // Interpolate within the fire year using yearly table values (fully consistent with table)
+  if (!rows.length) return null;
 
-  let invested = investAsset;
-  for (let m = 1; m <= 35 * 12; m++) {
-    invested = (invested + monthlySave) * (1 + monthlyRate);
-    const asset = invested + emergency;
-    const monthsElapsed = m - 1; // start of this month
-    const annualMinExp = annualExp * Math.pow(inflAnnual, m / 12);
-    if (asset * swr >= annualMinExp + mortgage) {
-      // Found the exact month
-      const date = new Date(START_YEAR, 0, 1); // Jan 1 2026
-      date.setMonth(date.getMonth() + m);
-      return date;
+  // Handle fire in first row
+  if (rows[0].diff > 0) return new Date(rows[0].year, 0, 1);
+
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].diff > 0) {
+      const prevDiff = rows[i - 1].diff; // negative
+      const currDiff = rows[i].diff;     // positive
+      // fraction of year i when condition crosses zero
+      const fraction = Math.abs(prevDiff) / (Math.abs(prevDiff) + currDiff);
+      const month = Math.min(Math.round(fraction * 12), 11); // 0–11
+      return new Date(rows[i].year, month, 1);
     }
   }
   return null;
@@ -541,8 +538,8 @@ function calculate() {
     asset = (asset + annualSave) * returnRate + emergency;
   }
 
-  // Precise fire date via monthly compounding
-  const fireDate = calcFireDate(investAsset, emergency, annualExp, mortgage, annualSave, annualReturnPct, swrPct, inflationPct);
+  // Precise fire date: interpolate within fire year (consistent with table)
+  const fireDate = calcFireDate(rows);
 
   renderBadge(fireYear, fireDate);
   renderTable(rows, fireYear);
