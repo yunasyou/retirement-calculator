@@ -667,7 +667,12 @@ async function syncFromSheets() {
       return;
     }
     const json = await resp.json();
-    const vals = json.valueRanges.map(vr => parseFloat((vr.values?.[0]?.[0] || '0').toString().replace(/,/g, '')) || 0);
+    const parseVal = vr => {
+      const raw = (vr.values?.[0]?.[0] || '0').toString();
+      const cleaned = raw.replace(/[^\d.\-]/g, ''); // strip ¥ NT$ , etc.
+      return parseFloat(cleaned) || 0;
+    };
+    const vals = json.valueRanges.map(parseVal);
 
     const [K38, L38, M38, N38, O38, P38, Q38, R38, B288, B290, I13] = vals;
     const emergency   = Q38 + O38 + P38;   // 備用金 = Q38+O38+P38
