@@ -484,62 +484,54 @@ function ageAt(year) {
   return year - BIRTH_YEAR - (BIRTH_MONTH > 6 ? 1 : 0); // approximate
 }
 
-function calcFireDate(rows) {
-  // Interpolate within the fire year using yearly table values (fully consistent with table)
-  if (!rows.length) return null;
-
-  // Handle fire in first row
-  if (rows[0].diff > 0) return new Date(rows[0].year, 0, 1);
-
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i].diff > 0) {
-      const prevDiff = rows[i - 1].diff; // negative
-      const currDiff = rows[i].diff;     // positive
-      // fraction of year i when condition crosses zero
-      const fraction = Math.abs(prevDiff) / (Math.abs(prevDiff) + currDiff);
-      const month = Math.min(Math.round(fraction * 12), 11); // 0–11
-      return new Date(rows[i].year, month, 1);
-    }
-  }
-  return null;
-}
-
 function calculate() {
-  const investAsset    = parseFloat(document.getElementById('p_investAsset').value);
-  const emergency      = parseFloat(document.getElementById('p_emergency').value);
-  const annualExp      = parseFloat(document.getElementById('p_annualExpense').value);
-  const mortgage       = parseFloat(document.getElementById('p_mortgage').value);
-  const annualSave     = parseFloat(document.getElementById('p_annualSaving').value);
-  const annualReturnPct = parseFloat(document.getElementById('p_return').value);
-  const swrPct         = parseFloat(document.getElementById('p_swr').value);
-  const inflationPct   = parseFloat(document.getElementById('p_inflation').value);
+  const investAsset  = parseFloat(document.getElementById('p_investAsset').value);
+  const emergency    = parseFloat(document.getElementById('p_emergency').value);
+  const annualExp    = parseFloat(document.getElementById('p_annualExpense').value);
+  const mortgage     = parseFloat(document.getElementById('p_mortgage').value);
+  const annualSave   = parseFloat(document.getElementById('p_annualSaving').value);
+  const annualRetPct = parseFloat(document.getElementById('p_return').value);
+  const swrPct       = parseFloat(document.getElementById('p_swr').value);
+  const inflationPct = parseFloat(document.getElementById('p_inflation').value);
 
-  const returnRate = annualReturnPct / 100 + 1;
-  const swr        = swrPct / 100;
-  const inflation  = inflationPct / 100 + 1;
+  const monthlyRate = Math.pow(1 + annualRetPct / 100, 1 / 12) - 1;
+  const monthlySave = annualSave / 12;
+  const swr         = swrPct / 100;
+  const inflAnnual  = 1 + inflationPct / 100;
 
   const rows = [];
-  let asset = (investAsset + annualSave) * returnRate + emergency;
   let fireYear = null;
+  let fireDate = null;
+  let invested = investAsset;
 
-  for (let i = 0; i < 35; i++) {
-    const year = START_YEAR + i;
-    const age = ageAt(year);
-    const minExp = annualExp * Math.pow(inflation, i);
-    const minExpMortgage = minExp + mortgage;
-    const safeWithdraw = asset * swr;
-    const diff = safeWithdraw - minExpMortgage;
-    const monthlyAvail = diff / 12;
+  for (let m = 1; m <= 35 * 12; m++) {
+    // 每月投入儲蓄後複利
+    invested = (invested + monthlySave) * (1 + monthlyRate);
+    const asset = invested + emergency;
 
-    rows.push({ year, age, minExp, minExpMortgage, asset, safeWithdraw, diff, monthlyAvail });
+    // 每月檢查是否達到 FIRE（用平滑通膨）
+    const annualMinExp = annualExp * Math.pow(inflAnnual, (m - 1) / 12);
+    const diff = asset * swr - (annualMinExp + mortgage);
 
-    if (diff > 0 && !fireYear) fireYear = { year, age };
+    if (!fireDate && diff >= 0) {
+      const d = new Date(START_YEAR, 0, 1);
+      d.setMonth(d.getMonth() + m - 1);
+      fireDate = d;
+    }
 
-    asset = (asset + annualSave) * returnRate + emergency;
+    // 每12個月記錄年度快照
+    if (m % 12 === 0) {
+      const yearIdx = m / 12 - 1;
+      const year = START_YEAR + yearIdx;
+      const age  = ageAt(year);
+      const minExp = annualExp * Math.pow(inflAnnual, yearIdx);
+      const minExpMortgage = minExp + mortgage;
+      const safeWithdraw = asset * swr;
+      const snapDiff = safeWithdraw - minExpMortgage;
+      rows.push({ year, age, minExp, minExpMortgage, asset, safeWithdraw, diff: snapDiff, monthlyAvail: snapDiff / 12 });
+      if (snapDiff > 0 && !fireYear) fireYear = { year, age };
+    }
   }
-
-  // Precise fire date: interpolate within fire year (consistent with table)
-  const fireDate = calcFireDate(rows);
 
   renderBadge(fireYear, fireDate);
   renderTable(rows, fireYear);
