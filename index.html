@@ -47,18 +47,32 @@
   .sync-btn svg { width: 14px; height: 14px; }
 
   /* Retirement badge */
+  .fire-section { margin-bottom: 32px; }
   .fire-badge {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: linear-gradient(135deg, #6366f120, #22d3ee20);
-    border: 1px solid #6366f140;
-    padding: 10px 20px; border-radius: 100px;
-    font-size: 15px; font-weight: 600; margin-bottom: 32px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: linear-gradient(135deg, #6366f125, #22d3ee15);
+    border: 1.5px solid #6366f160;
+    box-shadow: 0 0 24px #6366f118, inset 0 1px 0 #6366f130;
+    padding: 14px 24px; border-radius: 16px;
+    font-size: 15px; font-weight: 600; margin-bottom: 12px;
   }
-  .fire-badge .year { color: var(--accent2); font-size: 20px; }
+  .fire-badge .fire-icon { font-size: 22px; }
+  .fire-badge .fire-label { color: var(--text2); font-size: 13px; }
+  .fire-badge .year { color: var(--accent2); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
   .fire-badge .age-tag {
-    background: var(--accent); color: white;
-    padding: 2px 10px; border-radius: 100px; font-size: 12px;
+    background: linear-gradient(135deg, var(--accent), #818cf8);
+    color: white; padding: 4px 14px; border-radius: 100px; font-size: 13px; font-weight: 700;
   }
+  .fire-countdown {
+    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    padding: 12px 24px; border-radius: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+  .countdown-item { display: flex; flex-direction: column; align-items: center; }
+  .countdown-num { font-size: 28px; font-weight: 800; color: var(--accent2); letter-spacing: -1px; line-height: 1; }
+  .countdown-lbl { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .countdown-divider { width: 1px; height: 36px; background: var(--border); }
+  .countdown-text { font-size: 13px; color: var(--text2); }
 
   /* Grid layouts */
   .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
@@ -247,10 +261,33 @@
     </div>
   </div>
 
-  <!-- Fire target badge -->
-  <div class="fire-badge" id="fireBadge">
-    🔥 預計退休年份：<span class="year" id="fireYearLabel">–</span>
-    <span class="age-tag" id="fireAgeLabel">–</span>
+  <!-- Fire target -->
+  <div class="fire-section" id="fireSection" style="display:none">
+    <div class="fire-badge">
+      <span class="fire-icon">🔥</span>
+      <span class="fire-label">預計退休日期</span>
+      <span class="year" id="fireYearLabel">–</span>
+      <span class="age-tag" id="fireAgeLabel">–</span>
+    </div>
+    <div class="fire-countdown">
+      <div class="countdown-item">
+        <div class="countdown-num" id="countdownDays">–</div>
+        <div class="countdown-lbl">距今天數</div>
+      </div>
+      <div class="countdown-divider"></div>
+      <div class="countdown-item">
+        <div class="countdown-num" id="countdownYears">–</div>
+        <div class="countdown-lbl">年</div>
+      </div>
+      <div class="countdown-item">
+        <div class="countdown-num" id="countdownMonths">–</div>
+        <div class="countdown-lbl">個月</div>
+      </div>
+      <div class="countdown-item">
+        <div class="countdown-num" id="countdownDaysRem">–</div>
+        <div class="countdown-lbl">天</div>
+      </div>
+    </div>
   </div>
 
   <!-- Summary cards -->
@@ -485,14 +522,43 @@ function calculate() {
 }
 
 function renderBadge(fireYear) {
-  const badge = document.getElementById('fireBadge');
-  if (fireYear) {
-    document.getElementById('fireYearLabel').textContent = fireYear.year;
-    document.getElementById('fireAgeLabel').textContent = fireYear.age + ' 歲';
-    badge.style.display = 'inline-flex';
-  } else {
-    badge.style.display = 'none';
+  const section = document.getElementById('fireSection');
+  if (!fireYear) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  // Retirement date = Jan 1st of fire year
+  const retireDate = new Date(fireYear.year, 0, 1);
+  const retireDateStr = `${fireYear.year}年01月01日`;
+
+  // Age at retirement: years + months since birth
+  const birth = new Date(BIRTH_YEAR, BIRTH_MONTH - 1, 14);
+  let ageYears = retireDate.getFullYear() - birth.getFullYear();
+  let ageMonths = retireDate.getMonth() - birth.getMonth();
+  if (retireDate.getDate() < birth.getDate()) ageMonths--;
+  if (ageMonths < 0) { ageYears--; ageMonths += 12; }
+  const ageStr = `${ageYears}歲${ageMonths}個月`;
+
+  document.getElementById('fireYearLabel').textContent = retireDateStr;
+  document.getElementById('fireAgeLabel').textContent = ageStr;
+
+  // Countdown from today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const totalDays = Math.ceil((retireDate - today) / 86400000);
+  document.getElementById('countdownDays').textContent = totalDays.toLocaleString('zh-TW');
+
+  // Break down into years / months / days
+  let cy = today.getFullYear(), cm = today.getMonth(), cd = today.getDate();
+  let ry = retireDate.getFullYear(), rm = retireDate.getMonth(), rd = retireDate.getDate();
+  let diffY = ry - cy, diffM = rm - cm, diffD = rd - cd;
+  if (diffD < 0) {
+    diffM--;
+    diffD += new Date(ry, rm, 0).getDate();
   }
+  if (diffM < 0) { diffY--; diffM += 12; }
+  document.getElementById('countdownYears').textContent = diffY;
+  document.getElementById('countdownMonths').textContent = diffM;
+  document.getElementById('countdownDaysRem').textContent = diffD;
 }
 
 function renderTable(rows, fireYear) {
