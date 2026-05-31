@@ -7,69 +7,97 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #22263a;
-    --border: #2e3450;
-    --accent: #6366f1;
-    --accent2: #22d3ee;
-    --green: #10b981;
-    --red: #f43f5e;
-    --yellow: #f59e0b;
-    --text: #e2e8f0;
-    --text2: #94a3b8;
-    --text3: #64748b;
-    --radius: 12px;
+    --bg: #080d12;
+    --surface: rgba(18, 25, 33, 0.66);
+    --surface2: rgba(255, 255, 255, 0.065);
+    --surface3: rgba(255, 255, 255, 0.1);
+    --border: rgba(255, 255, 255, 0.13);
+    --border-strong: rgba(255, 255, 255, 0.22);
+    --accent: #8b9dff;
+    --accent2: #64e3d4;
+    --green: #5ee6a8;
+    --red: #ff6f8f;
+    --yellow: #ffd166;
+    --text: #f4f7fb;
+    --text2: #b8c2cf;
+    --text3: #7f8b9a;
+    --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+    --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    --radius: 8px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html {
+    background: var(--bg);
+    min-height: 100%;
+  }
   body {
     font-family: -apple-system, 'Segoe UI', sans-serif;
-    background: var(--bg);
+    background:
+      linear-gradient(165deg, #080d12 0%, #101923 42%, #0a1518 100%),
+      linear-gradient(90deg, rgba(139, 157, 255, 0.08), rgba(100, 227, 212, 0.07));
     color: var(--text);
     min-height: 100vh;
     padding: 32px 24px;
+    position: relative;
   }
-  .container { max-width: 1100px; margin: 0 auto; }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.65), transparent 78%);
+  }
+  .container { max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
 
   /* Header */
   .header { margin-bottom: 36px; }
-  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: 0; }
   .header p { color: var(--text2); margin-top: 6px; font-size: 14px; }
   .header-row { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
   .sync-btn {
     display: flex; align-items: center; gap: 8px;
     padding: 8px 16px; border-radius: 8px;
-    background: var(--surface2); border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.075); border: 1px solid var(--border);
     color: var(--text2); font-size: 13px; cursor: pointer;
-    transition: all 0.2s;
+    box-shadow: var(--inner-glow);
+    backdrop-filter: blur(18px);
+    transition: border-color 0.2s, color 0.2s, background 0.2s, transform 0.2s;
   }
-  .sync-btn:hover { border-color: var(--accent); color: var(--text); }
+  .sync-btn:hover { border-color: var(--accent2); color: var(--text); background: rgba(255, 255, 255, 0.11); transform: translateY(-1px); }
   .sync-btn svg { width: 14px; height: 14px; }
 
   /* Retirement badge */
   .fire-section { margin-bottom: 32px; }
   .fire-badge {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    background: linear-gradient(135deg, #6366f125, #22d3ee15);
-    border: 1.5px solid #6366f160;
-    box-shadow: 0 0 24px #6366f118, inset 0 1px 0 #6366f130;
-    padding: 14px 24px; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(139, 157, 255, 0.18), rgba(100, 227, 212, 0.08));
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: var(--shadow), var(--inner-glow);
+    backdrop-filter: blur(22px) saturate(150%);
+    padding: 14px 24px; border-radius: var(--radius);
     font-size: 15px; font-weight: 600; margin-bottom: 12px;
   }
   .fire-badge .fire-icon { font-size: 22px; }
   .fire-badge .fire-label { color: var(--text2); font-size: 13px; }
-  .fire-badge .year { color: var(--accent2); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .fire-badge .year { color: var(--accent2); font-size: 22px; font-weight: 800; letter-spacing: 0; }
   .fire-badge .age-tag {
-    background: linear-gradient(135deg, var(--accent), #818cf8);
+    background: rgba(139, 157, 255, 0.2);
+    border: 1px solid rgba(139, 157, 255, 0.36);
     color: white; padding: 4px 14px; border-radius: 100px; font-size: 13px; font-weight: 700;
   }
   .fire-countdown {
     display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
-    padding: 12px 24px; border-radius: 12px;
-    background: var(--surface2); border: 1px solid var(--border);
+    padding: 12px 24px; border-radius: var(--radius);
+    background: var(--surface); border: 1px solid var(--border);
+    box-shadow: var(--inner-glow);
+    backdrop-filter: blur(18px);
   }
   .countdown-item { display: flex; flex-direction: column; align-items: center; }
-  .countdown-num { font-size: 28px; font-weight: 800; color: var(--accent2); letter-spacing: -1px; line-height: 1; }
+  .countdown-num { font-size: 28px; font-weight: 800; color: var(--accent2); letter-spacing: 0; line-height: 1; }
   .countdown-lbl { font-size: 11px; color: var(--text3); margin-top: 3px; }
   .countdown-divider { width: 1px; height: 36px; background: var(--border); }
   .countdown-text { font-size: 13px; color: var(--text2); }
@@ -86,10 +114,12 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
+    box-shadow: var(--shadow), var(--inner-glow);
+    backdrop-filter: blur(22px) saturate(145%);
   }
-  .card-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
-  .card-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-  .card-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+  .card-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+  .card-value { font-size: 22px; font-weight: 700; letter-spacing: 0; }
+  .card-sub { font-size: 12px; color: var(--text3); margin-top: 6px; }
   .card-value.green { color: var(--green); }
   .card-value.accent { color: var(--accent); }
   .card-value.accent2 { color: var(--accent2); }
@@ -97,22 +127,24 @@
 
   /* Asset breakdown */
   .asset-section { margin-bottom: 20px; }
-  .section-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; }
   .asset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   @media (max-width: 600px) { .asset-grid { grid-template-columns: repeat(2, 1fr); } }
   .asset-card {
-    background: var(--surface2);
+    background: rgba(255, 255, 255, 0.055);
     border: 1px solid var(--border);
-    border-radius: 10px; padding: 16px;
+    border-radius: var(--radius); padding: 16px;
     position: relative; overflow: hidden;
+    box-shadow: var(--inner-glow);
+    backdrop-filter: blur(18px);
   }
   .asset-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
     background: var(--asset-color, var(--accent));
   }
-  .asset-card .lbl { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .asset-card .lbl { font-size: 11px; color: var(--text3); margin-bottom: 5px; }
   .asset-card .val { font-size: 16px; font-weight: 700; }
-  .asset-card .pct { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .asset-card .pct { font-size: 11px; color: var(--text3); margin-top: 4px; }
 
   /* Parameters panel */
   .params-card {
@@ -120,6 +152,8 @@
     border: 1px solid var(--border);
     border-radius: var(--radius); padding: 24px;
     margin-bottom: 20px;
+    box-shadow: var(--shadow), var(--inner-glow);
+    backdrop-filter: blur(22px) saturate(145%);
   }
   .params-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
@@ -128,19 +162,19 @@
   @media (max-width: 600px) { .params-grid { grid-template-columns: repeat(2, 1fr); } }
   .param-item label { font-size: 11px; color: var(--text3); display: block; margin-bottom: 6px; }
   .param-item input {
-    width: 100%; padding: 8px 12px;
-    background: var(--surface2); border: 1px solid var(--border);
+    width: 100%; padding: 9px 12px;
+    background: rgba(255, 255, 255, 0.07); border: 1px solid var(--border);
     border-radius: 8px; color: var(--text); font-size: 14px;
-    outline: none; transition: border-color 0.2s;
+    outline: none; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
   }
-  .param-item input:focus { border-color: var(--accent); }
+  .param-item input:focus { border-color: var(--accent2); background: rgba(255, 255, 255, 0.1); box-shadow: 0 0 0 3px rgba(100, 227, 212, 0.12); }
   .recalc-btn {
     margin-top: 16px; padding: 10px 24px;
-    background: var(--accent); color: white; border: none;
+    background: linear-gradient(135deg, rgba(139, 157, 255, 0.95), rgba(100, 227, 212, 0.88)); color: #061016; border: none;
     border-radius: 8px; font-size: 14px; font-weight: 600;
-    cursor: pointer; transition: opacity 0.2s;
+    cursor: pointer; transition: transform 0.2s, filter 0.2s;
   }
-  .recalc-btn:hover { opacity: 0.85; }
+  .recalc-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
 
   /* Chart */
   .chart-card {
@@ -148,6 +182,8 @@
     border: 1px solid var(--border);
     border-radius: var(--radius); padding: 24px;
     margin-bottom: 20px;
+    box-shadow: var(--shadow), var(--inner-glow);
+    backdrop-filter: blur(22px) saturate(145%);
   }
   .chart-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
   .chart-wrap { position: relative; height: 300px; }
@@ -161,21 +197,23 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden; margin-bottom: 20px;
+    box-shadow: var(--shadow), var(--inner-glow);
+    backdrop-filter: blur(22px) saturate(145%);
   }
   .table-header { padding: 20px 24px 16px; }
   .table-header h3 { font-size: 15px; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; }
   thead th {
-    background: var(--surface2);
+    background: rgba(255, 255, 255, 0.07);
     padding: 10px 14px; text-align: right;
     font-size: 11px; color: var(--text3);
     font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
     white-space: nowrap;
   }
   thead th:first-child { text-align: left; }
-  tbody tr { border-top: 1px solid var(--border); transition: background 0.15s; }
-  tbody tr:hover { background: var(--surface2); }
-  tbody tr.fire-row { background: #6366f110; }
+  tbody tr { border-top: 1px solid rgba(255, 255, 255, 0.095); transition: background 0.15s; }
+  tbody tr:hover { background: rgba(255, 255, 255, 0.06); }
+  tbody tr.fire-row { background: rgba(100, 227, 212, 0.09); }
   tbody tr.fire-row td { color: var(--text); }
   tbody td {
     padding: 10px 14px; font-size: 13px; text-align: right;
@@ -186,47 +224,51 @@
   .negative { color: var(--red) !important; }
   .fire-tag {
     display: inline-flex; align-items: center; gap: 4px;
-    background: #6366f130; color: var(--accent);
+    background: rgba(100, 227, 212, 0.14); color: var(--accent2);
+    border: 1px solid rgba(100, 227, 212, 0.24);
     padding: 2px 8px; border-radius: 100px; font-size: 10px; font-weight: 700;
     margin-left: 6px;
   }
 
   /* Divider */
-  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 24px 0; }
 
   /* Sync modal */
   .modal-overlay {
     display: none; position: fixed; inset: 0;
-    background: #00000090; z-index: 100;
+    background: rgba(0, 0, 0, 0.58); z-index: 100;
     align-items: center; justify-content: center;
+    backdrop-filter: blur(10px);
   }
   .modal-overlay.open { display: flex; }
   .modal {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 16px; padding: 28px; width: 480px; max-width: 95vw;
+    border-radius: var(--radius); padding: 28px; width: 480px; max-width: 95vw;
+    box-shadow: var(--shadow), var(--inner-glow);
+    backdrop-filter: blur(24px) saturate(150%);
   }
   .modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
   .modal p { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 16px; }
   .modal input {
     width: 100%; padding: 10px 14px;
-    background: var(--surface2); border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.07); border: 1px solid var(--border);
     border-radius: 8px; color: var(--text); font-size: 14px;
     outline: none; margin-bottom: 12px; transition: border-color 0.2s;
   }
-  .modal input:focus { border-color: var(--accent); }
+  .modal input:focus { border-color: var(--accent2); }
   .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
   .btn-cancel {
-    padding: 9px 18px; background: var(--surface2);
+    padding: 9px 18px; background: rgba(255, 255, 255, 0.07);
     border: 1px solid var(--border); border-radius: 8px;
     color: var(--text2); font-size: 13px; cursor: pointer;
   }
   .btn-sync {
-    padding: 9px 18px; background: var(--accent);
+    padding: 9px 18px; background: linear-gradient(135deg, rgba(139, 157, 255, 0.95), rgba(100, 227, 212, 0.88));
     border: none; border-radius: 8px;
-    color: white; font-size: 13px; font-weight: 600; cursor: pointer;
+    color: #061016; font-size: 13px; font-weight: 600; cursor: pointer;
   }
   code {
-    background: var(--surface2); padding: 2px 6px; border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08); padding: 2px 6px; border-radius: 4px;
     font-size: 12px; color: var(--accent2);
   }
 
@@ -295,17 +337,17 @@
     <div class="card">
       <div class="card-label">股票現金資産</div>
       <div class="card-value accent" id="totalStockCash">–</div>
-      <div class="card-sub">L38+M38+N38+O38+P38+Q38</div>
+      <div class="card-sub">N38+O38+P38+Q38+R38+S38</div>
     </div>
     <div class="card">
       <div class="card-label">股票現金房屋資産</div>
       <div class="card-value accent2" id="totalWithHouse">–</div>
-      <div class="card-sub">R38 + K38</div>
+      <div class="card-sub">M38 + T38</div>
     </div>
     <div class="card">
       <div class="card-label">備用金</div>
       <div class="card-value yellow" id="emergencyFund">–</div>
-      <div class="card-sub">Q38 + O38 + P38（現金台幣+美金+日幣）</div>
+      <div class="card-sub">Q38 + R38 + S38（日幣+台幣+美金現金）</div>
     </div>
   </div>
 
@@ -313,33 +355,33 @@
   <div class="asset-section">
     <div class="section-title">資産分配</div>
     <div class="asset-grid">
-      <div class="asset-card" style="--asset-color: #6366f1">
-        <div class="lbl">美股資産 (L38)</div>
+      <div class="asset-card" style="--asset-color: #8b9dff">
+        <div class="lbl">美股資産 (N38)</div>
         <div class="val" id="assetUS">–</div>
         <div class="pct" id="assetUSPct"></div>
       </div>
-      <div class="asset-card" style="--asset-color: #22d3ee">
-        <div class="lbl">台股資産 (M38+N38)</div>
+      <div class="asset-card" style="--asset-color: #64e3d4">
+        <div class="lbl">台股資産 (O38+P38)</div>
         <div class="val" id="assetTW">–</div>
         <div class="pct" id="assetTWPct"></div>
       </div>
-      <div class="asset-card" style="--asset-color: #10b981">
-        <div class="lbl">台幣現金 (P38)</div>
+      <div class="asset-card" style="--asset-color: #5ee6a8">
+        <div class="lbl">台幣現金 (R38)</div>
         <div class="val" id="assetTWD">–</div>
         <div class="pct" id="assetTWDPct"></div>
       </div>
-      <div class="asset-card" style="--asset-color: #f59e0b">
-        <div class="lbl">美金現金 (Q38)</div>
+      <div class="asset-card" style="--asset-color: #ffd166">
+        <div class="lbl">美金現金 (S38)</div>
         <div class="val" id="assetUSD">–</div>
         <div class="pct" id="assetUSDPct"></div>
       </div>
-      <div class="asset-card" style="--asset-color: #f43f5e">
-        <div class="lbl">日幣現金 (O38)</div>
+      <div class="asset-card" style="--asset-color: #ff6f8f">
+        <div class="lbl">日幣現金 (Q38)</div>
         <div class="val" id="assetJPY">–</div>
         <div class="pct" id="assetJPYPct"></div>
       </div>
-      <div class="asset-card" style="--asset-color: #a78bfa">
-        <div class="lbl">房屋資産 (K38)</div>
+      <div class="asset-card" style="--asset-color: #c8a6ff">
+        <div class="lbl">房屋資産 (M38)</div>
         <div class="val" id="assetHouse">–</div>
         <div class="pct" id="assetHousePct"></div>
       </div>
@@ -348,13 +390,50 @@
 
   <div class="divider"></div>
 
+  <!-- Chart -->
+  <div class="chart-card">
+    <div class="chart-title">資産成長 vs. 安全提領</div>
+    <div class="chart-wrap">
+      <canvas id="projChart"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#8b9dff"></div>總資産</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#5ee6a8"></div>安全提領</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff6f8f"></div>最小支出+房貸</div>
+    </div>
+  </div>
+
+  <!-- Projection table -->
+  <div class="table-card">
+    <div class="table-header">
+      <h3>年度退休計劃試算</h3>
+    </div>
+    <div style="overflow-x:auto">
+      <table id="projTable">
+        <thead>
+          <tr>
+            <th>年份</th>
+            <th>年齡</th>
+            <th>最小支出</th>
+            <th>最小支出+房貸</th>
+            <th>總資産</th>
+            <th>安全提領</th>
+            <th>安全提領－最小支出</th>
+            <th>每月可用</th>
+          </tr>
+        </thead>
+        <tbody id="projBody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Parameters -->
   <div class="params-card">
     <div class="section-title">計算參數</div>
     <div class="params-grid">
       <div class="param-item">
         <label>投資型資産（股票資産初始值）</label>
-        <input type="number" id="p_investAsset" value="4775160.87">
+        <input type="number" id="p_investAsset" value="8716850.87">
       </div>
       <div class="param-item">
         <label>備用金（不投資的現金）</label>
@@ -388,43 +467,6 @@
     <button class="recalc-btn" onclick="calculate()">重新計算</button>
   </div>
 
-  <!-- Chart -->
-  <div class="chart-card">
-    <div class="chart-title">資産成長 vs. 安全提領</div>
-    <div class="chart-wrap">
-      <canvas id="projChart"></canvas>
-    </div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div>總資産</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>安全提領</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f43f5e"></div>最小支出+房貸</div>
-    </div>
-  </div>
-
-  <!-- Projection table -->
-  <div class="table-card">
-    <div class="table-header">
-      <h3>年度退休計劃試算</h3>
-    </div>
-    <div style="overflow-x:auto">
-      <table id="projTable">
-        <thead>
-          <tr>
-            <th>年份</th>
-            <th>年齡</th>
-            <th>最小支出</th>
-            <th>最小支出+房貸</th>
-            <th>總資産</th>
-            <th>安全提領</th>
-            <th>安全提領－最小支出</th>
-            <th>每月可用</th>
-          </tr>
-        </thead>
-        <tbody id="projBody"></tbody>
-      </table>
-    </div>
-  </div>
-
 </div>
 
 <!-- Sync Modal -->
@@ -454,21 +496,21 @@ const START_YEAR = 2026;
 
 // Default data from spreadsheet (synced 2026-05-13)
 const DEFAULT_DATA = {
-  // Assets for display (K38-R38 from 資産分配)
-  K38: 7372342, // 房屋
-  L38: 3990530,     // 美股 (estimated from portfolio)
-  M38: 3812033.37,  // 台股大盤
-  N38: 914287.50,   // 台積電
-  O38: 37357.87,    // 日幣現金 (NTD equivalent)
-  P38: 273258.74,   // 台幣現金
-  Q38: 320000,      // 美金現金 (NTD equivalent)
-  R38: 5415916.97,  // 股票現金合計
+  // Assets for display (M38-T38 from 資産分配)
+  M38: 7372342,     // 房屋
+  N38: 3990530,     // 美股 (estimated from portfolio)
+  O38: 3812033.37,  // 台股大盤
+  P38: 914287.50,   // 台積電
+  Q38: 37357.87,    // 日幣現金 (NTD equivalent)
+  R38: 273258.74,   // 台幣現金
+  S38: 320000,      // 美金現金 (NTD equivalent)
+  T38: 9347467.48,  // 股票現金合計
   // Calculation params
   annualExpense: 600000,    // B288
   annualSaving: 1090000,    // B290
   mortgage: 372000,         // I13*12
-  investAsset: 4726320.87,  // 投資型資産 = L38+M38+N38
-  emergency: 630616.61,     // 備用金 = Q38+O38+P38
+  investAsset: 8716850.87,  // 投資型資産 = N38+O38+P38
+  emergency: 630616.61,     // 備用金 = Q38+R38+S38
 };
 
 let data = { ...DEFAULT_DATA };
@@ -585,7 +627,8 @@ function renderBadge(fireYear, fireDate) {
 
 function renderTable(rows, fireYear) {
   const tbody = document.getElementById('projBody');
-  tbody.innerHTML = rows.map(r => {
+  const visibleRows = fireYear ? rows.filter(r => r.year <= fireYear.year) : rows;
+  tbody.innerHTML = visibleRows.map(r => {
     const isFire = fireYear && r.year === fireYear.year;
     const diffClass = r.diff > 0 ? 'positive' : 'negative';
     const fireTagHtml = isFire ? '<span class="fire-tag">🔥 FIRE</span>' : '';
@@ -618,19 +661,19 @@ function renderChart(rows, fireYear) {
       datasets: [
         {
           label: '總資産', data: assetData,
-          borderColor: '#6366f1', backgroundColor: '#6366f120',
+          borderColor: '#8b9dff', backgroundColor: 'rgba(139, 157, 255, 0.13)',
           borderWidth: 2, fill: true, tension: 0.3, pointRadius: 3,
           yAxisID: 'y',
         },
         {
           label: '安全提領', data: swrData,
-          borderColor: '#10b981', backgroundColor: 'transparent',
+          borderColor: '#5ee6a8', backgroundColor: 'transparent',
           borderWidth: 2, fill: false, tension: 0.3, pointRadius: 3,
           yAxisID: 'y1',
         },
         {
           label: '最小支出+房貸', data: minExpData,
-          borderColor: '#f43f5e', backgroundColor: 'transparent',
+          borderColor: '#ff6f8f', backgroundColor: 'transparent',
           borderWidth: 1.5, fill: false, tension: 0.3,
           borderDash: [6, 3], pointRadius: 2,
           yAxisID: 'y1',
@@ -643,8 +686,8 @@ function renderChart(rows, fireYear) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1a1d27', borderColor: '#2e3450', borderWidth: 1,
-          titleColor: '#e2e8f0', bodyColor: '#94a3b8',
+          backgroundColor: 'rgba(8, 13, 18, 0.88)', borderColor: 'rgba(255, 255, 255, 0.16)', borderWidth: 1,
+          titleColor: '#f4f7fb', bodyColor: '#b8c2cf',
           callbacks: {
             label: ctx => ` ${ctx.dataset.label}: NT$${ctx.raw.toLocaleString('zh-TW')}`
           }
@@ -652,14 +695,14 @@ function renderChart(rows, fireYear) {
       },
       scales: {
         x: {
-          grid: { color: '#2e345040' },
-          ticks: { color: '#64748b', font: { size: 10 }, maxTicksLimit: 12 },
+          grid: { color: 'rgba(255, 255, 255, 0.07)' },
+          ticks: { color: '#7f8b9a', font: { size: 10 }, maxTicksLimit: 12 },
         },
         y: {
           position: 'left',
-          grid: { color: '#2e345040' },
+          grid: { color: 'rgba(255, 255, 255, 0.07)' },
           ticks: {
-            color: '#64748b', font: { size: 10 },
+            color: '#7f8b9a', font: { size: 10 },
             callback: v => v >= 1e6 ? (v/1e4).toFixed(0) + '萬' : v.toLocaleString()
           },
         },
@@ -667,7 +710,7 @@ function renderChart(rows, fireYear) {
           position: 'right',
           grid: { drawOnChartArea: false },
           ticks: {
-            color: '#64748b', font: { size: 10 },
+            color: '#7f8b9a', font: { size: 10 },
             callback: v => v >= 1e6 ? (v/1e4).toFixed(0) + '萬' : v.toLocaleString()
           },
         }
@@ -678,8 +721,8 @@ function renderChart(rows, fireYear) {
           legend: { display: false },
           annotation: undefined,
           tooltip: {
-            backgroundColor: '#1a1d27', borderColor: '#2e3450', borderWidth: 1,
-            titleColor: '#e2e8f0', bodyColor: '#94a3b8',
+            backgroundColor: 'rgba(8, 13, 18, 0.88)', borderColor: 'rgba(255, 255, 255, 0.16)', borderWidth: 1,
+            titleColor: '#f4f7fb', bodyColor: '#b8c2cf',
             callbacks: {
               label: ctx => ` ${ctx.dataset.label}: NT$${ctx.raw.toLocaleString('zh-TW')}`
             }
@@ -692,20 +735,21 @@ function renderChart(rows, fireYear) {
 
 function renderAssets() {
   const d = data;
-  const twStock = (d.M38 || 0) + (d.N38 || 0);
-  const usStock = d.L38 || 0;
-  const twdCash = d.P38 || 0;
-  const usdCash = d.Q38 || 0;
-  const jpyCash = d.O38 || 0;
-  const house   = d.K38 || 0;
-  const r38     = d.R38 || (usStock + twStock + twdCash + usdCash + jpyCash);
-  const total   = house + r38;
+  const house   = d.M38 || 0;
+  const usStock = d.N38 || 0;
+  const twStock = (d.O38 || 0) + (d.P38 || 0);
+  const jpyCash = d.Q38 || 0;
+  const twdCash = d.R38 || 0;
+  const usdCash = d.S38 || 0;
+  const stockCash = usStock + twStock + jpyCash + twdCash + usdCash;
+  const stockCashTotal = d.T38 || stockCash;
+  const total   = house + stockCashTotal;
 
-  document.getElementById('totalStockCash').textContent = 'NT$' + fmtFull(Math.round(r38));
+  document.getElementById('totalStockCash').textContent = 'NT$' + fmtFull(Math.round(stockCash));
   document.getElementById('totalWithHouse').textContent = 'NT$' + fmtFull(Math.round(total));
   document.getElementById('emergencyFund').textContent  = 'NT$' + fmtFull(Math.round(d.emergency));
 
-  const pct = v => '佔投資組合 ' + (v/r38*100).toFixed(1) + '%';
+  const pct = v => '佔投資組合 ' + (stockCash ? (v/stockCash*100).toFixed(1) : '0.0') + '%';
 
   document.getElementById('assetUS').textContent    = 'NT$' + fmtFull(Math.round(usStock));
   document.getElementById('assetUSPct').textContent  = pct(usStock);
@@ -737,8 +781,8 @@ async function syncFromSheets() {
   localStorage.setItem('gsheets_api_key', apiKey);
 
   const ranges = [
-    '資產分配!K38', '資產分配!L38', '資產分配!M38', '資產分配!N38',
-    '資產分配!O38', '資產分配!P38', '資產分配!Q38', '資產分配!R38',
+    '資產分配!M38', '資產分配!N38', '資產分配!O38', '資產分配!P38',
+    '資產分配!Q38', '資產分配!R38', '資產分配!S38', '資產分配!T38',
     '資產分配!B288', '資產分配!B290',
     '日本購屋支出!I13',
   ];
@@ -762,12 +806,12 @@ async function syncFromSheets() {
     };
     const vals = json.valueRanges.map(parseVal);
 
-    const [K38, L38, M38, N38, O38, P38, Q38, R38, B288, B290, I13] = vals;
-    const emergency   = Q38 + O38 + P38;   // 備用金 = Q38+O38+P38
-    const investAsset = L38 + M38 + N38;   // 投資型資産 = L38+M38+N38
+    const [M38, N38, O38, P38, Q38, R38, S38, T38, B288, B290, I13] = vals;
+    const emergency   = Q38 + R38 + S38;   // 備用金 = Q38+R38+S38
+    const investAsset = N38 + O38 + P38;   // 投資型資産 = N38+O38+P38
 
     data = {
-      K38, L38, M38, N38, O38, P38, Q38, R38,
+      M38, N38, O38, P38, Q38, R38, S38, T38,
       annualExpense: B288,
       annualSaving: B290,
       mortgage: I13 * 12,
